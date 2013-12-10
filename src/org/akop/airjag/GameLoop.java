@@ -1,5 +1,7 @@
 package org.akop.airjag;
 
+import org.akop.airjag.model.Sprite;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -26,7 +28,7 @@ public class GameLoop extends Thread {
 	private Bitmap mGameBitmap;
 	private Canvas mGameCanvas;
 	private Context mContext;
-	private int mDensityFactor;
+	private int mDensity;
 
 	private int mMapWidth;
 	private int mMapHeight;
@@ -169,6 +171,8 @@ public class GameLoop extends Thread {
 	private int[][] mTileMap;
 	private int mY;
 
+	private Sprite mPlayer;
+
 	public GameLoop(Context context, SurfaceHolder holder) {
 		mContext = context;
 		mRunning = false;
@@ -176,13 +180,15 @@ public class GameLoop extends Thread {
 		mTiles = new SparseArray<Bitmap>();
 
 		DisplayMetrics metrics = mContext.getResources().getDisplayMetrics();
-		mDensityFactor = (int)metrics.density;
+		mDensity = (int)metrics.density;
 
 		mScaledWidth = scale(GAME_WIDTH_PX);
 		mScaledHeight = scale(GAME_HEIGHT_PX);
 
 		initResources();
 		initTileMap();
+		initSprites();
+		initGame();
 
 		mViewableTop = GAME_HEIGHT_PX + TILE_HEIGHT_PX;
 	}
@@ -213,15 +219,21 @@ public class GameLoop extends Thread {
 				Bitmap.Config.ARGB_8888);
 		mGameCanvas = new Canvas(mGameBitmap);
 
-		Log.v("*", "Loading resources");
-
-		int tileset[] = mTileSets[2];
+		int tileset[] = mTileSets[0];
 		for (int i = 0, n = tileset.length; i < n; i++) {
 			mTiles.put(i, BitmapFactory.decodeResource(mContext.getResources(),
 					tileset[i]));
 		}
+	}
 
-		Log.v("*", "Done");
+	private void initSprites() {
+		mPlayer = new Sprite(mContext, 
+				R.drawable.objects_00, R.drawable.objects_01);
+	}
+
+	private void initGame() {
+		mPlayer.setPos((GAME_WIDTH_PX - mPlayer.getWidth()) / 2, 
+				GAME_HEIGHT_PX - mPlayer.getHeight() * 2);
 	}
 
 	public void stopGameLoop() {
@@ -229,21 +241,23 @@ public class GameLoop extends Thread {
 	}
 
 	private int scale(int size) {
-		return size * mDensityFactor;
+		return size * mDensity;
 	}
 
-	public void renderTiles() {
-		Log.v("*", String.format("VT: %d | mY: %d", mViewableTop, mY));
-
+	private void renderTiles(Canvas canvas) {
 		for (int j = 0; j < GAME_WIDTH; j++) {
 			int tile = mTileMap[mY][j];
 			int scaledX = scale(j * TILE_WIDTH_PX);
 
-			mGameCanvas.drawBitmap(mTiles.get(tile), 
-					scaledX, scale(mViewableTop - TILE_HEIGHT_PX), null);
-			mGameCanvas.drawBitmap(mTiles.get(tile), 
-					scaledX, scale(mViewableTop + GAME_HEIGHT_PX), null);
+			canvas.drawBitmap(mTiles.get(tile), scaledX, 
+					scale(mViewableTop - TILE_HEIGHT_PX), null);
+			canvas.drawBitmap(mTiles.get(tile), scaledX, 
+					scale(mViewableTop + GAME_HEIGHT_PX), null);
 		}
+	}
+
+	private void renderSprites(Canvas canvas) {
+		mPlayer.render(canvas);
 	}
 
 	@Override
@@ -253,6 +267,15 @@ public class GameLoop extends Thread {
 		while (mRunning) {
 			Canvas canvas = null;
 			try {
+				if ((mViewableTop % TILE_HEIGHT_PX) == 0) {
+					renderTiles(mGameCanvas);
+					mY--;
+				}
+
+				mViewableTop -= 4;
+				if (mViewableTop <= 0)
+					mViewableTop = GAME_HEIGHT_PX + TILE_HEIGHT_PX;
+
 				canvas = mSurfaceHolder.lockCanvas();
 				synchronized (mSurfaceHolder) {
 					Rect source = new Rect(0, scale(mViewableTop), mScaledWidth, scale(mViewableTop) + mScaledHeight);
@@ -263,20 +286,13 @@ public class GameLoop extends Thread {
 					}
 				}
 
-				if ((mViewableTop % TILE_HEIGHT_PX) == 0) {
-					renderTiles();
-					mY--;
-				}
-
-				mViewableTop -= 4;
-				if (mViewableTop <= 0)
-					mViewableTop = GAME_HEIGHT_PX + TILE_HEIGHT_PX;
+				renderSprites(canvas);
 			} finally {
 				if (canvas != null)
 					mSurfaceHolder.unlockCanvasAndPost(canvas);
 			}
 try {
-	Thread.sleep(0);
+	Thread.sleep(25);
 } catch (InterruptedException e) {
 	// TODO Auto-generated catch block
 	e.printStackTrace();
@@ -293,5 +309,7 @@ try {
 			int key = mTiles.keyAt(i);
 			mTiles.get(key).recycle();
 		}
+
+		mPlayer.destroy();
 	}
 }
