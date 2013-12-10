@@ -198,13 +198,13 @@ public class GameLoop extends Thread {
 				mTileMap[i][j] = 0;
 
 		int foo = 0;
-		for (int i = 0, n = mMapHeight; i < n; i++) {
+		for (int i = mMapHeight - 1; i >= 0; i--) {
 			mTileMap[i][foo] = 4;
 			if (++foo > 7)
 				foo = 0;
 		}
 
-		mY = mMapHeight - GAME_HEIGHT;
+		mY = mMapHeight - 1;
 	}
 
 	private void initResources() {
@@ -236,11 +236,13 @@ public class GameLoop extends Thread {
 		Log.v("*", String.format("VT: %d | mY: %d", mViewableTop, mY));
 
 		for (int j = 0; j < GAME_WIDTH; j++) {
-			int tile = mTileMap[mY - 1][j];
+			int tile = mTileMap[mY][j];
+			int scaledX = scale(j * TILE_WIDTH_PX);
+
 			mGameCanvas.drawBitmap(mTiles.get(tile), 
-					scale(j * 32), scale(mViewableTop - TILE_HEIGHT_PX), null);
-			mGameCanvas.drawBitmap(mTiles.get(mTileMap[mY - 1][j]), 
-					scale(j * 32), scale(mViewableTop + GAME_HEIGHT_PX), null);
+					scaledX, scale(mViewableTop - TILE_HEIGHT_PX), null);
+			mGameCanvas.drawBitmap(mTiles.get(tile), 
+					scaledX, scale(mViewableTop + GAME_HEIGHT_PX), null);
 		}
 	}
 
@@ -248,7 +250,6 @@ public class GameLoop extends Thread {
 	public void run() {
 		mRunning = true;
 
-		renderTiles();
 		while (mRunning) {
 			Canvas canvas = null;
 			try {
@@ -263,8 +264,8 @@ public class GameLoop extends Thread {
 				}
 
 				if ((mViewableTop % TILE_HEIGHT_PX) == 0) {
-					mY--;
 					renderTiles();
+					mY--;
 				}
 
 				mViewableTop -= 4;
