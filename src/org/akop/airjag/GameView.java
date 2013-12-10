@@ -1,7 +1,6 @@
 package org.akop.airjag;
 
 import android.content.Context;
-import android.graphics.Canvas;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -14,7 +13,7 @@ public class GameView extends SurfaceView implements
 	public GameView(Context context) {
 		super(context);
 
-		mGameLoop = new GameLoop(getHolder(), this);
+		mGameLoop = new GameLoop(context, getHolder());
 
 		getHolder().addCallback(this);
 		setFocusable(true);
@@ -41,15 +40,12 @@ public class GameView extends SurfaceView implements
 			} catch (InterruptedException e) {
 			}
 		}
+
+		mGameLoop.cleanUp();
 	}
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 		return super.onTouchEvent(event);
 	}
-
-	@Override
-	protected void onDraw(Canvas canvas) {
-	}
 }
-
