@@ -4,18 +4,37 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Rect;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceHolder;
 
 public class GameLoop extends Thread {
+
+	private static final int TILE_WIDTH_PX  = 32;
+	private static final int TILE_HEIGHT_PX = 32;
+
+	private static final int GAME_WIDTH = 8;
+	private static final int GAME_HEIGHT = 11;
+
+	private static final int GAME_WIDTH_PX  = GAME_WIDTH * TILE_WIDTH_PX;
+	private static final int GAME_HEIGHT_PX = GAME_HEIGHT * TILE_HEIGHT_PX;
+
 	private boolean mRunning;
 	private SurfaceHolder mSurfaceHolder;
 	private Bitmap mGameBitmap;
 	private Canvas mGameCanvas;
 	private Context mContext;
 	private int mDensityFactor;
+
+	private int mMapWidth;
+	private int mMapHeight;
+
+	private int mScaledWidth;
+	private int mScaledHeight;
+
+	private int mViewableTop;
 
 	private static final int mTileSets[][] = {
 		{ R.drawable.tileset0_00, 
@@ -147,6 +166,9 @@ public class GameLoop extends Thread {
 
 	private SparseArray<Bitmap> mTiles;
 
+	private int[][] mTileMap;
+	private int mY;
+
 	public GameLoop(Context context, SurfaceHolder holder) {
 		mContext = context;
 		mRunning = false;
@@ -156,17 +178,44 @@ public class GameLoop extends Thread {
 		DisplayMetrics metrics = mContext.getResources().getDisplayMetrics();
 		mDensityFactor = (int)metrics.density;
 
+		mScaledWidth = scale(GAME_WIDTH_PX);
+		mScaledHeight = scale(GAME_HEIGHT_PX);
+
 		initResources();
+		initTileMap();
+
+		mViewableTop = GAME_HEIGHT_PX + TILE_HEIGHT_PX;
+	}
+
+	private void initTileMap() {
+		mMapWidth = 8;
+		mMapHeight = 400;
+
+		mTileMap = new int[mMapHeight][mMapWidth];
+
+		for (int i = 0, n = mMapHeight; i < n; i++)
+			for (int j = 0, o = mMapWidth; j < o; j++)
+				mTileMap[i][j] = 0;
+
+		int foo = 0;
+		for (int i = 0, n = mMapHeight; i < n; i++) {
+			mTileMap[i][foo] = 4;
+			if (++foo > 7)
+				foo = 0;
+		}
+
+		mY = mMapHeight - GAME_HEIGHT;
 	}
 
 	private void initResources() {
-		mGameBitmap = Bitmap.createBitmap(256 * mDensityFactor, 
-				352 * 2 * mDensityFactor, Bitmap.Config.ARGB_8888);
+		mGameBitmap = Bitmap.createBitmap(mScaledWidth, 
+				scale(GAME_HEIGHT_PX * 2 + TILE_HEIGHT_PX), 
+				Bitmap.Config.ARGB_8888);
 		mGameCanvas = new Canvas(mGameBitmap);
 
 		Log.v("*", "Loading resources");
 
-		int tileset[] = mTileSets[0];
+		int tileset[] = mTileSets[2];
 		for (int i = 0, n = tileset.length; i < n; i++) {
 			mTiles.put(i, BitmapFactory.decodeResource(mContext.getResources(),
 					tileset[i]));
@@ -179,29 +228,58 @@ public class GameLoop extends Thread {
 		mRunning = false;
 	}
 
-	public void doShit() {
-		for (int i = 0; i < 8; i++)
-			mGameCanvas.drawBitmap(mTiles.get(5), i * 32 * mDensityFactor, i, null);
+	private int scale(int size) {
+		return size * mDensityFactor;
+	}
+
+	public void renderTiles() {
+		Log.v("*", String.format("VT: %d | mY: %d", mViewableTop, mY));
+
+		for (int j = 0; j < GAME_WIDTH; j++) {
+			int tile = mTileMap[mY - 1][j];
+			mGameCanvas.drawBitmap(mTiles.get(tile), 
+					scale(j * 32), scale(mViewableTop - TILE_HEIGHT_PX), null);
+			mGameCanvas.drawBitmap(mTiles.get(mTileMap[mY - 1][j]), 
+					scale(j * 32), scale(mViewableTop + GAME_HEIGHT_PX), null);
+		}
 	}
 
 	@Override
 	public void run() {
 		mRunning = true;
 
+		renderTiles();
 		while (mRunning) {
 			Canvas canvas = null;
 			try {
-				doShit();
 				canvas = mSurfaceHolder.lockCanvas();
 				synchronized (mSurfaceHolder) {
+					Rect source = new Rect(0, scale(mViewableTop), mScaledWidth, scale(mViewableTop) + mScaledHeight);
+					Rect dest = new Rect(0, 0, mScaledWidth, mScaledHeight);
+
 					if (canvas != null) {
-					    canvas.drawBitmap(mGameBitmap, 0, 0, null);
+						canvas.drawBitmap(mGameBitmap, source, dest, null);
 					}
 				}
+
+				if ((mViewableTop % TILE_HEIGHT_PX) == 0) {
+					mY--;
+					renderTiles();
+				}
+
+				mViewableTop -= 4;
+				if (mViewableTop <= 0)
+					mViewableTop = GAME_HEIGHT_PX + TILE_HEIGHT_PX;
 			} finally {
 				if (canvas != null)
 					mSurfaceHolder.unlockCanvasAndPost(canvas);
 			}
+try {
+	Thread.sleep(0);
+} catch (InterruptedException e) {
+	// TODO Auto-generated catch block
+	e.printStackTrace();
+}
 		}
 
 		Log.v("*", "Game loop exited");
