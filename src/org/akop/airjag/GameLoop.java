@@ -1,18 +1,28 @@
 package org.akop.airjag;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.akop.airjag.model.Boat;
+import org.akop.airjag.model.Bus;
+import org.akop.airjag.model.Cannon;
+import org.akop.airjag.model.Canoe;
+import org.akop.airjag.model.CarEastbound;
+import org.akop.airjag.model.CarNorthbound;
+import org.akop.airjag.model.CarSouthbound;
+import org.akop.airjag.model.CarWestbound;
 import org.akop.airjag.model.HTank;
 import org.akop.airjag.model.Helo;
 import org.akop.airjag.model.Jet;
-import org.akop.airjag.model.PlaneToLeft;
-import org.akop.airjag.model.PlaneToRight;
+import org.akop.airjag.model.PlaneEastbound;
+import org.akop.airjag.model.PlaneWestbound;
 import org.akop.airjag.model.Player;
 import org.akop.airjag.model.RedPlane;
 import org.akop.airjag.model.SmallTank;
 import org.akop.airjag.model.Sprite;
+import org.akop.airjag.model.TaxiingPlane;
+import org.akop.airjag.model.Tractor;
 import org.akop.airjag.model.VTank;
 
 import android.content.Context;
@@ -308,7 +318,7 @@ public class GameLoop extends Thread {
 			if (++foo > 7)
 				foo = 0;
 		}
-int sprites[] = new int[] { 29, 26, 28, 24, 22, 18, 20, 10, 12 };
+int sprites[] = new int[] { 7,8,9,2,3,4,5,6,14, 29, 26, 28, 24, 22, 18, 20, 10, 12 };
 int spriteIdx = 0;
 		for (int i = mMapHeight - 11; i >= 0; i-=3) {
 			List<SpriteHolder> spriteHolders = new ArrayList<SpriteHolder>();
@@ -335,11 +345,38 @@ if (++spriteIdx >= sprites.length)
 				Sprite sprite = null;
 
 				switch(spriteHolder.mType) {
+				case 2:
+					sprite = new Canoe(mSack);
+					break;
+				case 3:
+					sprite = new CarWestbound(mSack);
+					break;
+				case 4:
+					sprite = new CarEastbound(mSack);
+					break;
+				case 5:
+					sprite = new CarNorthbound(mSack);
+					break;
+				case 6:
+					sprite = new CarSouthbound(mSack);
+					break;
+				case 7:
+					sprite = new Bus(mSack);
+					break;
+				case 8:
+					sprite = new TaxiingPlane(mSack);
+					break;
+				case 9:
+					sprite = new Tractor(mSack);
+					break;
 				case 10:
 					sprite = new RedPlane(mSack);
 					break;
 				case 12:
 					sprite = new Helo(mSack);
+					break;
+				case 14:
+					sprite = new Cannon(mSack);
 					break;
 				case 18:
 					sprite = new VTank(mSack);
@@ -357,18 +394,19 @@ if (++spriteIdx >= sprites.length)
 					sprite = new Jet(mSack);
 					break;
 				case 28:
-					sprite = new PlaneToRight(mSack);
+					sprite = new PlaneEastbound(mSack);
 					break;
 				case 29:
-					sprite = new PlaneToLeft(mSack);
+					sprite = new PlaneWestbound(mSack);
 					break;
 				}
 
 				if (sprite != null) {
-					if (sprite.needsHorizontalPlacement())
+					if (sprite.needsPlacement())
 						sprite.setPos(spriteHolder.mX, -TILE_HEIGHT_PX);
 
 					mOnscreenSprites.add(sprite);
+					Collections.sort(mOnscreenSprites, Sprite.ZIndexComparator);
 				}
 			}
 		}
@@ -415,23 +453,24 @@ if (++spriteIdx >= sprites.length)
 				if (mViewableTop <= 0)
 					mViewableTop = GAME_HEIGHT_PX + TILE_HEIGHT_PX;
 
-				// Render actual bitmap
+				// Render tile map to scratch bitmap
 				Rect source = new Rect(0, scale(mViewableTop), mScaledWidth, scale(mViewableTop) + mScaledHeight);
 				Rect dest = new Rect(0, 0, mScaledWidth, mScaledHeight);
 
 				mActualCanvas.drawBitmap(mVirtualBitmap, source, dest, null);
 
-				// Render sprites
+				// Render sprites to scratch bitmap
+				for (Sprite sprite: mOnscreenSprites) {
+					if (mPlayer.isInCollision(sprite)) {
+						sprite.kill();
+					} else if (!sprite.isKilled()) {
+						sprite.advance(mPlayer);
+						sprite.render(mActualCanvas);
+					}
+				}
+
 				mPlayer.advance(null);
 				mPlayer.render(mActualCanvas);
-
-				for (Sprite sprite: mOnscreenSprites) {
-					if (mPlayer.isInCollision(sprite))
-						sprite.kill();
-
-					sprite.advance(mPlayer);
-					sprite.render(mActualCanvas);
-				}
 
 				// Render scratch bitmap to the surface
 				canvas = mSurfaceHolder.lockCanvas();

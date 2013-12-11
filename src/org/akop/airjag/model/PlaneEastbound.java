@@ -3,23 +3,23 @@ package org.akop.airjag.model;
 import org.akop.airjag.TileSack;
 
 
-public class PlaneToLeft extends Enemy {
+public class PlaneEastbound extends Enemy {
 
-	public PlaneToLeft(TileSack sack) {
-		super(sack, TileSack.MASK_SPRITE | 29);
+	public PlaneEastbound(TileSack sack) {
+		super(sack, TileSack.MASK_SPRITE | 28);
 
-		setPos(256, -32);
+		setPos(-32, -32); // FIXME: hardcoded
 	}
 
 	@Override
 	public void advance(Sprite player) {
 		super.advance(player);
 
-		updatePos(-4, 4);
+		updatePos(4, 4);
 	}
 
 	@Override
-	public boolean needsHorizontalPlacement() {
+	public boolean needsPlacement() {
 		return false;
 	}
 

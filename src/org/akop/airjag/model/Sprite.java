@@ -1,5 +1,7 @@
 package org.akop.airjag.model;
 
+import java.util.Comparator;
+
 import org.akop.airjag.AirJag;
 import org.akop.airjag.TileSack;
 
@@ -10,6 +12,13 @@ import android.util.DisplayMetrics;
 
 public abstract class Sprite {
 
+	public static final Comparator<Sprite> ZIndexComparator = new Comparator<Sprite>() {
+		@Override
+		public int compare(Sprite lhs, Sprite rhs) {
+			return lhs.getZIndex() - rhs.getZIndex();
+		}
+	};
+
 	private TileSack mSack;
 	private int mFrameIds[];
 	private static int sDensity = -1;
@@ -17,11 +26,11 @@ public abstract class Sprite {
 	private int mFrameCount;
 	private int mCurrentFrame;
 
-	private int mWidth;
-	private int mHeight;
+	protected int mWidth;
+	protected int mHeight;
 
-	private int mX;
-	private int mY;
+	protected int mX;
+	protected int mY;
 
 	private boolean mIsKilled;
 
@@ -43,7 +52,7 @@ public abstract class Sprite {
 		}
 	}
 
-	public boolean needsHorizontalPlacement() {
+	public boolean needsPlacement() {
 		return true;
 	}
 
@@ -104,11 +113,8 @@ public abstract class Sprite {
 			canvas.drawBitmap(bmp, scale(mX), scale(mY), null);
 	}
 
-	public boolean isInCollision(Sprite sprite) {
-		int dx = sprite.mX - mX;
-		int dy = sprite.mY - mY;
-
-		return dx < mWidth && dx > -mWidth && dy < mWidth && dy > -mWidth;
+	public boolean isInCollision(Sprite player) {
+		return false;
 	}
 
 	public int getZIndex() {
