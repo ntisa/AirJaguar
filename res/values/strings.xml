@@ -5,5 +5,13 @@
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
     <string name="tile_editor_title">Tile Editor</string>
+    
+    <string name="selected_tile_title">Tile:</string>
+    <string name="selected_object_title">Enemy:</string>
+    
+    <string name="action_upload_map">Upload Level</string>
+    <string name="action_change_tile_set">Change Tile Set</string>
+    
+    <string name="tile_set_generic">tile_set_%1$d</string>
 
 </resources>
