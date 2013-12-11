@@ -1,5 +1,7 @@
 package org.akop.airjag;
 
+import org.akop.airjag.model.GameMap;
+
 import android.content.Context;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -10,10 +12,10 @@ public class GameView extends SurfaceView implements
 
 	private GameLoop mGameLoop;
 
-	public GameView(Context context) {
+	public GameView(Context context, GameMap map) {
 		super(context);
 
-		mGameLoop = new GameLoop(context, getHolder());
+		mGameLoop = new GameLoop(context, getHolder(), map);
 
 		getHolder().addCallback(this);
 		setFocusable(true);

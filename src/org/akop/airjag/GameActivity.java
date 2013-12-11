@@ -1,6 +1,10 @@
 package org.akop.airjag;
 
+import org.akop.airjag.model.GameMap;
+
 import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -8,6 +12,7 @@ import android.view.MenuItem;
 public class GameActivity extends Activity {
 
 	private GameView mView;
+	private GameMap mMap;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -17,7 +22,9 @@ public class GameActivity extends Activity {
 //        getWindow().setFlags(LayoutParams.FLAG_FULLSCREEN, 
 //        		LayoutParams.FLAG_FULLSCREEN);
 
-		mView = new GameView(this);
+		mMap = getIntent().getParcelableExtra("map");
+		mView = new GameView(this, mMap);
+
 		setContentView(mView);
 	}
 
@@ -36,5 +43,11 @@ public class GameActivity extends Activity {
 		}
 
 		return false;
+	}
+
+	public static void launch(Context context, GameMap map) {
+		Intent intent = new Intent(context, GameActivity.class);
+		intent.putExtra("map", map);
+		context.startActivity(intent);
 	}
 }

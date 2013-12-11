@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.akop.airjag.model.GameMap;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -22,7 +23,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -72,30 +72,50 @@ public class LevelSelectorActivity extends Activity {
 			public void run() {
 				String data = download("http://10.0.1.193:8080/get?id=" + id);
 
-				Log.v("*", " ** " + data);
-//				JSONArray items;
-//
-//				try {
-//					items = new JSONArray(data);
-//				} catch (JSONException e) {
-//					throw new RuntimeException(e);
-//				}
-//
-//				for (int i = 0, n = items.length(); i < n; i++) {
-//					JSONObject obj = items.optJSONObject(i);
-//					if (obj != null) {
-//						Map map = new Map();
-//						map.mId = obj.optLong("ID", 0);
-//						map.mName = obj.optString("Name");
-//						mMap.add(map);
-//					}
-//				}
-//
-//				runOnUiThread(new Runnable() {
-//					public void run() {
-//						mAdapter.notifyDataSetChanged();
-//					}
-//				});
+				JSONObject object;
+
+				try {
+					object = new JSONObject(data);
+				} catch (JSONException e) {
+					throw new RuntimeException(e);
+				}
+
+				GameMap map = null;
+
+				JSONArray tiles = object.optJSONArray("GameTileData");
+				int tileSet = object.optInt("TileSet");
+
+				if (tiles != null) {
+					map = new GameMap(tiles.length(), tileSet);
+				}
+
+				if (map != null) {
+					for (int i = 0, n = tiles.length(); i < n; i++) {
+						JSONArray row = tiles.optJSONArray(i);
+						for (int j = 0, o = row.length(); j < o; j++) {
+							map.setTile(j, i, row.optInt(j, 0));
+						}
+					}
+				}
+
+				JSONArray sprites = object.optJSONArray("GameObjectData");
+				if (sprites != null) {
+					for (int i = 0, n = sprites.length(); i < n; i++) {
+						JSONObject sprite = sprites.optJSONObject(i);
+						int row = sprite.optInt("Row");
+						int column = sprite.optInt("Column");
+						int type = sprite.optInt("ResourceName");
+
+						map.setSprite(column, row, type);
+					}
+				}
+
+				final GameMap finalMap = map;
+				runOnUiThread(new Runnable() {
+					public void run() {
+						GameActivity.launch(LevelSelectorActivity.this, finalMap);
+					}
+				});
 			}
 		});
 		t.start();

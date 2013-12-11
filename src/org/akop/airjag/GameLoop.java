@@ -12,6 +12,8 @@ import org.akop.airjag.model.CarEastbound;
 import org.akop.airjag.model.CarNorthbound;
 import org.akop.airjag.model.CarSouthbound;
 import org.akop.airjag.model.CarWestbound;
+import org.akop.airjag.model.GameMap;
+import org.akop.airjag.model.GameMap.SpriteHolder;
 import org.akop.airjag.model.HTank;
 import org.akop.airjag.model.Helo;
 import org.akop.airjag.model.Jet;
@@ -31,20 +33,9 @@ import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.SparseArray;
 import android.view.SurfaceHolder;
 
 public class GameLoop extends Thread {
-
-	private static class SpriteHolder {
-		public int mType;
-		public int mX;
-
-		public SpriteHolder(int type, int x) {
-			mType = type;
-			mX = x;
-		}
-	}
 
 	private static final int TILE_WIDTH_PX  = 32;
 	private static final int TILE_HEIGHT_PX = 32;
@@ -63,8 +54,6 @@ public class GameLoop extends Thread {
 	private Canvas mActualCanvas;
 	private Context mContext;
 	private int mDensity;
-
-	private int mMapHeight;
 
 	private int mScaledWidth;
 	private int mScaledHeight;
@@ -235,20 +224,23 @@ public class GameLoop extends Thread {
 		R.drawable.objects_29,
 	};
 
-	private SparseArray<List<SpriteHolder>> mSpriteMap;
-	private int[][] mTileMap;
-
 	private int mY;
 
 	private TileSack mSack;
 	private Sprite mPlayer;
+	private GameMap mGameMap;
 	private List<Sprite> mOnscreenSprites;
 
-	public GameLoop(Context context, SurfaceHolder holder) {
+	public GameLoop(Context context, SurfaceHolder holder, GameMap map) {
 		mContext = context;
+		mGameMap = map;
+
+		if (mGameMap == null) {
+			mGameMap = new GameMap(400, 0);
+		}
+
 		mRunning = false;
 		mSurfaceHolder = holder;
-		mSpriteMap = new SparseArray<List<SpriteHolder>>();
 		mOnscreenSprites = new ArrayList<Sprite>();
 
 		DisplayMetrics metrics = mContext.getResources().getDisplayMetrics();
@@ -273,15 +265,15 @@ public class GameLoop extends Thread {
 		mSack = new TileSack(mContext);
 
 		initResources();
-		initTileMap();
 		initSprites();
 		initGame();
 
+		mY = mGameMap.getHeight() - 1;
 		mViewableTop = GAME_HEIGHT_PX + TILE_HEIGHT_PX;
 	}
 
 	private void initResources() {
-		int tileset[] = mTileSets[0];
+		int tileset[] = mTileSets[mGameMap.getTileSet()];
 		for (int i = 0, n = tileset.length; i < n; i++) {
 			mSack.addTile(TileSack.MASK_TILE | i, tileset[i]);
 		}
@@ -291,18 +283,6 @@ public class GameLoop extends Thread {
 		}
 	}
 
-	private void initTileMap() {
-		mMapHeight = 400;
-
-		mTileMap = new int[mMapHeight][GAME_WIDTH];
-
-		for (int i = 0, n = mMapHeight; i < n; i++)
-			for (int j = 0, o = GAME_WIDTH; j < o; j++)
-				mTileMap[i][j] = 0;
-
-		mY = mMapHeight - 1;
-	}
-
 	private void initSprites() {
 		mPlayer = new Player(mSack);
 	}
@@ -310,24 +290,6 @@ public class GameLoop extends Thread {
 	private void initGame() {
 		mPlayer.setPos((GAME_WIDTH_PX - mPlayer.getWidth()) / 2, 
 				GAME_HEIGHT_PX - mPlayer.getHeight() * 2);
-
-		// Generate some dummy data
-		int foo = 0;
-		for (int i = mMapHeight - 1; i >= 0; i--) {
-			mTileMap[i][foo] = 4;
-			if (++foo > 7)
-				foo = 0;
-		}
-int sprites[] = new int[] { 7,8,9,2,3,4,5,6,14, 29, 26, 28, 24, 22, 18, 20, 10, 12 };
-int spriteIdx = 0;
-		for (int i = mMapHeight - 11; i >= 0; i-=3) {
-			List<SpriteHolder> spriteHolders = new ArrayList<SpriteHolder>();
-			int x = (int)(Math.random() * GAME_WIDTH_PX);
-			spriteHolders.add(new SpriteHolder(sprites[spriteIdx], x));
-			mSpriteMap.put(i, spriteHolders);
-if (++spriteIdx >= sprites.length)
-	spriteIdx = 0;
-		}
 	}
 
 	public void stopGameLoop() {
@@ -339,7 +301,7 @@ if (++spriteIdx >= sprites.length)
 	}
 
 	private void placeSprites() {
-		List<SpriteHolder> spriteHolders = mSpriteMap.get(mY);
+		List<SpriteHolder> spriteHolders = mGameMap.getSprites(mY);
 		if (spriteHolders != null) {
 			for (SpriteHolder spriteHolder: spriteHolders) {
 				Sprite sprite = null;
@@ -428,7 +390,7 @@ if (++spriteIdx >= sprites.length)
 		for (int j = 0; j < GAME_WIDTH; j++) {
 			int scaledX = scale(j * TILE_WIDTH_PX);
 
-			Bitmap tile = mSack.getTile(TileSack.MASK_TILE | mTileMap[mY][j]);
+			Bitmap tile = mSack.getTile(TileSack.MASK_TILE | mGameMap.getTile(j, mY));
 			canvas.drawBitmap(tile, scaledX, scale(mViewableTop - TILE_HEIGHT_PX), null);
 			canvas.drawBitmap(tile, scaledX, scale(mViewableTop + GAME_HEIGHT_PX), null);
 		}
