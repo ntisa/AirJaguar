@@ -13,5 +13,7 @@
     <string name="action_change_tile_set">Change Tile Set</string>
     
     <string name="tile_set_generic">tile_set_%1$d</string>
+    <string name="load_level">Load level</string>
+
 
 </resources>
