@@ -40,6 +40,10 @@ public class GameActivity extends Activity {
 		case R.id.menu_load_level:
 			LevelSelectorActivity.launch(this);
 			return true;
+			
+		case R.id.menu_edit_level:
+			LevelEditorActivity.launch(this, mMap);
+			return true;
 		}
 
 		return false;

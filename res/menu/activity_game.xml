@@ -3,4 +3,9 @@
         android:id="@+id/menu_load_level"
         android:title="@string/load_level"
     />
+    
+    <item
+        android:id="@+id/menu_edit_level"
+        android:title="@string/edit_level"
+    />
 </menu>

@@ -5,8 +5,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.akop.airjag.model.GameAsset;
+import org.akop.airjag.model.GameMap;
 import org.akop.airjag.model.GameRow;
-import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
@@ -54,6 +54,8 @@ public class LevelEditorActivity extends Activity {
 	
 	private int currentTileSet;
 	
+	private GameMap mMap;
+	
 	private void resetDefaultTileView() {
 		// Initialize the Game Map Rows TODO SO KLUDGEY!		
 		// Kludge . . . im tired
@@ -98,8 +100,14 @@ public class LevelEditorActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_level_editor);
-
+		
+		mMap = getIntent().getParcelableExtra("map");
 		currentTileSet = 0;
+		
+		if(mMap != null) {
+			currentTileSet = mMap.getTileSet();
+		}
+		
 		resetDefaultTileView();
 
 		ImageView replacementTileImage = (ImageView) findViewById(R.id.selected_tile_image);
@@ -126,6 +134,15 @@ public class LevelEditorActivity extends Activity {
 				startActivityForResult(intent, GAME_OBJECT_REQUEST_CODE);
 			}
 		});
+		
+//		if(mMap != null) {
+//			for (GameRow gr : mGameAssetRows) {
+//				int resId = getResources().getIdentifier(tileSet, "drawable", getPackageName());
+//				gr.getTileAtPosition(0).setResource(replacementTile.getResource());
+//				mGameAssetRows.get(position).getTileAtPosition(3).setResourceName(replacementTile.getResourceName());
+//				mGameAssetRows.get(position).getTileAtPosition(3).setType(replacementTile.getType());
+//			}
+//		}
 	}
 	
 	@Override
@@ -226,6 +243,25 @@ public class LevelEditorActivity extends Activity {
 		return true;
 	}
 	
+	private ArrayList<GameRow> convertGameMap(GameMap gameMap) {
+		int[] tileSet = mTileSets[gameMap.getTileSet()];
+		
+		
+		for(int ii = 0; ii < gameMap.getHeight(); ++ii) {
+			GameRow gameRow = new GameRow();
+			
+			for(int jj = 0; jj < 8; ++jj) {
+				int tile = gameMap.getTile(jj, ii);
+				
+				String resourceName = String.format("%02d", tile);
+				GameAsset gameAsset = new GameAsset(tileSet[tile], resourceName, GameAsset.ASSET_TYPE_TILE, jj, ii);
+				
+				gameRow.addTile(gameAsset);
+			}
+		}
+		
+		return null;
+	}
 	private void parseAndUploadMap(final String mapName) {
 		JSONArray innerJSONArray;
 		JSONArray outerJSONArray = new JSONArray();
@@ -251,7 +287,8 @@ public class LevelEditorActivity extends Activity {
 				try {
 					objectJSON.put("Column", ga.getColumnPosition());
 					objectJSON.put("Row", ga.getRowPosition());
-					objectJSON.put("ResourceName", Integer.parseInt(ga.getResourceName()));
+					if(!TextUtils.isEmpty(ga.getResourceName()))
+						objectJSON.put("ResourceName", Integer.parseInt(ga.getResourceName()));
 				} catch (JSONException e) {
 					e.printStackTrace();
 				}
@@ -288,7 +325,7 @@ public class LevelEditorActivity extends Activity {
 			        httppost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
 
 			        // Execute HTTP Post Request
-			        HttpResponse response = httpclient.execute(httppost);
+			        httpclient.execute(httppost);
 
 			    } catch (ClientProtocolException e) {
 			        // TODO Auto-generated catch block
@@ -305,14 +342,14 @@ public class LevelEditorActivity extends Activity {
 	public class TileEditorAdapter extends ArrayAdapter<GameRow> {
 		
 		private Context mContext;
-		private ImageView previouslySelectedTile;
-		private boolean doubleClick;
+//		private ImageView previouslySelectedTile;
+//		private boolean doubleClick;
 
 		public TileEditorAdapter(Context context, int resource, List<GameRow> gameTileRows) {
 			super(context, resource, gameTileRows);
 			
 			mContext = context;
-			doubleClick = false;
+//			doubleClick = false;
 		}
 		
 		@Override
@@ -587,4 +624,139 @@ public class LevelEditorActivity extends Activity {
 //			previouslySelectedTile = selectedTile;
 //		}
 	}
+	
+	
+	public static void launch(Context context, GameMap map) {
+		Intent intent = new Intent(context, LevelEditorActivity.class);
+		intent.putExtra("map", map);
+		context.startActivity(intent);
+	}
+	
+	private static final int mTileSets[][] = {
+		{ R.drawable.tileset0_00, 
+			R.drawable.tileset0_01, 
+			R.drawable.tileset0_02, 
+			R.drawable.tileset0_03, 
+			R.drawable.tileset0_04, 
+			R.drawable.tileset0_05, 
+			R.drawable.tileset0_06, 
+			R.drawable.tileset0_07, 
+			R.drawable.tileset0_08, 
+			R.drawable.tileset0_09, 
+			R.drawable.tileset0_10, 
+			R.drawable.tileset0_11, 
+			R.drawable.tileset0_12, 
+			R.drawable.tileset0_13, 
+			R.drawable.tileset0_14, 
+			R.drawable.tileset0_15, 
+			R.drawable.tileset0_16, 
+			R.drawable.tileset0_17, 
+			R.drawable.tileset0_18, 
+			R.drawable.tileset0_19, 
+			R.drawable.tileset0_20, 
+			R.drawable.tileset0_21, 
+			R.drawable.tileset0_22, 
+			R.drawable.tileset0_23, 
+		},
+		{ R.drawable.tileset1_00, 
+			R.drawable.tileset1_01, 
+			R.drawable.tileset1_02, 
+			R.drawable.tileset1_03, 
+			R.drawable.tileset1_04, 
+			R.drawable.tileset1_05, 
+			R.drawable.tileset1_06, 
+			R.drawable.tileset1_07, 
+			R.drawable.tileset1_08, 
+			R.drawable.tileset1_09, 
+			R.drawable.tileset1_10, 
+			R.drawable.tileset1_11, 
+			R.drawable.tileset1_12, 
+			R.drawable.tileset1_13, 
+			R.drawable.tileset1_14, 
+			R.drawable.tileset1_15, 
+			R.drawable.tileset1_16, 
+			R.drawable.tileset1_17, 
+			R.drawable.tileset1_18, 
+			R.drawable.tileset1_19, 
+			R.drawable.tileset1_20, 
+			R.drawable.tileset1_21, 
+			R.drawable.tileset1_22, 
+			R.drawable.tileset1_23, 
+		},
+		{ R.drawable.tileset2_00, 
+			R.drawable.tileset2_01, 
+			R.drawable.tileset2_02, 
+			R.drawable.tileset2_03, 
+			R.drawable.tileset2_04, 
+			R.drawable.tileset2_05, 
+			R.drawable.tileset2_06, 
+			R.drawable.tileset2_07, 
+			R.drawable.tileset2_08, 
+			R.drawable.tileset2_09, 
+			R.drawable.tileset2_10, 
+			R.drawable.tileset2_11, 
+			R.drawable.tileset2_12, 
+			R.drawable.tileset2_13, 
+			R.drawable.tileset2_14, 
+			R.drawable.tileset2_15, 
+			R.drawable.tileset2_16, 
+			R.drawable.tileset2_17, 
+			R.drawable.tileset2_18, 
+			R.drawable.tileset2_19, 
+			R.drawable.tileset2_20, 
+			R.drawable.tileset2_21, 
+			R.drawable.tileset2_22, 
+			R.drawable.tileset2_23, 
+		},
+		{ R.drawable.tileset3_00, 
+			R.drawable.tileset3_01, 
+			R.drawable.tileset3_02, 
+			R.drawable.tileset3_03, 
+			R.drawable.tileset3_04, 
+			R.drawable.tileset3_05, 
+			R.drawable.tileset3_06, 
+			R.drawable.tileset3_07, 
+			R.drawable.tileset3_08, 
+			R.drawable.tileset3_09, 
+			R.drawable.tileset3_10, 
+			R.drawable.tileset3_11, 
+			R.drawable.tileset3_12, 
+			R.drawable.tileset3_13, 
+			R.drawable.tileset3_14, 
+			R.drawable.tileset3_15, 
+			R.drawable.tileset3_16, 
+			R.drawable.tileset3_17, 
+			R.drawable.tileset3_18, 
+			R.drawable.tileset3_19, 
+			R.drawable.tileset3_20, 
+			R.drawable.tileset3_21, 
+			R.drawable.tileset3_22, 
+			R.drawable.tileset3_23, 
+		},
+		{ R.drawable.tileset4_00, 
+			R.drawable.tileset4_01, 
+			R.drawable.tileset4_02, 
+			R.drawable.tileset4_03, 
+			R.drawable.tileset4_04, 
+			R.drawable.tileset4_05, 
+			R.drawable.tileset4_06, 
+			R.drawable.tileset4_07, 
+			R.drawable.tileset4_08, 
+			R.drawable.tileset4_09, 
+			R.drawable.tileset4_10, 
+			R.drawable.tileset4_11, 
+			R.drawable.tileset4_12, 
+			R.drawable.tileset4_13, 
+			R.drawable.tileset4_14, 
+			R.drawable.tileset4_15, 
+			R.drawable.tileset4_16, 
+			R.drawable.tileset4_17, 
+			R.drawable.tileset4_18, 
+			R.drawable.tileset4_19, 
+			R.drawable.tileset4_20, 
+			R.drawable.tileset4_21, 
+			R.drawable.tileset4_22, 
+			R.drawable.tileset4_23, 
+		}
+	};
 }

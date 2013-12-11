@@ -8,6 +8,11 @@ public class GameRow {
 	private ArrayList<GameAsset> mTiles;
 	private ArrayList<GameAsset> mObjects;
 	
+	public GameRow() {
+		mTiles = new ArrayList<GameAsset>();
+		mObjects = new ArrayList<GameAsset>();
+	}
+	
 	public GameRow(int resource, int rowPosition, String resourceName) {
 		this.mTiles = new ArrayList<GameAsset>(MAX_COLUMN_SIZE);
 		this.mObjects = new ArrayList<GameAsset>(MAX_COLUMN_SIZE);
@@ -24,7 +29,7 @@ public class GameRow {
 		for(int ii = 0; ii < MAX_COLUMN_SIZE; ++ii) {
 			this.mObjects.add(ii,
 					new GameAsset(	-1, 
-									"0",
+									"",
 									GameAsset.ASSET_TYPE_OBJECT,
 									ii,
 									rowPosition));
@@ -46,6 +51,12 @@ public class GameRow {
 	
 	public GameAsset getTileAtPosition(int position) {
 		return mTiles.get(position);
+	}
+	
+	public GameRow addTile(GameAsset gameAsset) {
+		mTiles.add(gameAsset);
+		
+		return this;
 	}
 	
 	public GameRow setTileAtPosition(int position, GameAsset gameTile) {

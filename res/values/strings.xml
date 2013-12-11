@@ -14,6 +14,6 @@
     
     <string name="tile_set_generic">tile_set_%1$d</string>
     <string name="load_level">Load level</string>
-
+    <string name="edit_level">Edit level</string>
 
 </resources>
