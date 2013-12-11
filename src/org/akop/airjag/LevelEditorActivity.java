@@ -273,7 +273,7 @@ public class LevelEditorActivity extends Activity {
 			// Tiles
 			innerJSONArray = new JSONArray();
 			for (GameAsset ga : gr.getTiles()) {
-				finalResourceName = ga.getResourceName().substring(1);
+				finalResourceName = ga.getResourceName();
 				innerJSONArray.put(Integer.parseInt(finalResourceName));
 			}
 			outerJSONArray.put(innerJSONArray);
