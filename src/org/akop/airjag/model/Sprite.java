@@ -1,15 +1,17 @@
 package org.akop.airjag.model;
 
-import android.content.Context;
+import org.akop.airjag.AirJag;
+import org.akop.airjag.TileSack;
+
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.util.DisplayMetrics;
 
 
 public abstract class Sprite {
-	private Context mContext;
-	private Bitmap[] mFrameBitmaps;
+
+	private TileSack mSack;
+	private int mFrameIds[];
 	private static int sDensity = -1;
 
 	private int mFrameCount;
@@ -21,31 +23,28 @@ public abstract class Sprite {
 	private int mX;
 	private int mY;
 
-	public Sprite(Context context, int... frameResIds) {
-		mContext = context;
+	private boolean mIsKilled;
 
-		if (sDensity < 0) {
-			DisplayMetrics metrics = mContext.getResources().getDisplayMetrics();
-			sDensity = (int)metrics.density;
-		}
-
-		initResources(frameResIds);
-	}
-
-	private void initResources(int... frameResIds) {
-		mFrameCount = frameResIds.length;
+	public Sprite(TileSack sack, int... frameIds) {
+		mIsKilled = false;
+		mSack = sack;
+		mFrameIds = frameIds;
+		mFrameCount = mFrameIds.length;
 		mCurrentFrame = 0;
 
-		if (mFrameCount > 0) {
-			mFrameBitmaps = new Bitmap[mFrameCount];
-			for (int i = 0; i < mFrameCount; i++) {
-				mFrameBitmaps[i] = BitmapFactory.decodeResource(mContext.getResources(),
-						frameResIds[i]);
-			}
-	
-			mWidth = mFrameBitmaps[0].getWidth() / sDensity;
-			mHeight = mFrameBitmaps[0].getHeight() / sDensity;
+		if (sDensity < 0) {
+			DisplayMetrics metrics = AirJag.getInstance().getResources().getDisplayMetrics();
+			sDensity = (int) metrics.density;
 		}
+
+		if (frameIds.length > 0) {
+			mWidth = sack.getWidth(frameIds[0]);
+			mHeight = sack.getHeight(frameIds[0]);
+		}
+	}
+
+	public boolean needsHorizontalPlacement() {
+		return true;
 	}
 
 	public void setPos(int x, int y) {
@@ -69,8 +68,9 @@ public abstract class Sprite {
 		mY = y;
 	}
 
-	public void incrementY(int byHowMuch) {
-		mY += byHowMuch;
+	public void updatePos(int xDelta, int yDelta) {
+		mX += xDelta;
+		mY += yDelta;
 	}
 
 	public int getWidth() {
@@ -81,20 +81,37 @@ public abstract class Sprite {
 		return mHeight;
 	}
 
-	private int scale(int size) {
+	protected static int scale(int size) {
 		return size * sDensity;
 	}
 
-	public void render(Canvas canvas) {
-		canvas.drawBitmap(mFrameBitmaps[mCurrentFrame], 
-				scale(mX), scale(mY), null);
-
+	public void advance(Sprite player) {
 		if (++mCurrentFrame >= mFrameCount)
 			mCurrentFrame = 0;
 	}
 
-	public void destroy() {
-		for (Bitmap bmp: mFrameBitmaps)
-			bmp.recycle();
+	public boolean isKilled() {
+		return mIsKilled;
+	}
+
+	public void kill() {
+		mIsKilled = true;
+	}
+
+	public void render(Canvas canvas) {
+		Bitmap bmp = mSack.getTile(mFrameIds[mCurrentFrame]);
+		if (bmp != null)
+			canvas.drawBitmap(bmp, scale(mX), scale(mY), null);
+	}
+
+	public boolean isInCollision(Sprite sprite) {
+		int dx = sprite.mX - mX;
+		int dy = sprite.mY - mY;
+
+		return dx < mWidth && dx > -mWidth && dy < mWidth && dy > -mWidth;
+	}
+
+	public int getZIndex() {
+		return 0;
 	}
 }

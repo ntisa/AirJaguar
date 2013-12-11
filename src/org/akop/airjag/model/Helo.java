@@ -3,17 +3,17 @@ package org.akop.airjag.model;
 import org.akop.airjag.TileSack;
 
 
-public class RedPlane extends Enemy {
+public class Helo extends Enemy {
 
-	public RedPlane(TileSack sack) {
-		super(sack, TileSack.MASK_SPRITE | 10, TileSack.MASK_SPRITE | 11);
+	public Helo(TileSack sack) {
+		super(sack, TileSack.MASK_SPRITE | 12, TileSack.MASK_SPRITE | 13);
 	}
 
 	@Override
 	public void advance(Sprite player) {
 		super.advance(player);
 
-		updatePos(2, 8);
+		updatePos(0, 4);
 	}
 
 	@Override

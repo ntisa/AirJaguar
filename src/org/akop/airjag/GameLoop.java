@@ -3,13 +3,20 @@ package org.akop.airjag;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.akop.airjag.model.Boat;
+import org.akop.airjag.model.HTank;
+import org.akop.airjag.model.Helo;
+import org.akop.airjag.model.Jet;
+import org.akop.airjag.model.PlaneToLeft;
+import org.akop.airjag.model.PlaneToRight;
 import org.akop.airjag.model.Player;
 import org.akop.airjag.model.RedPlane;
+import org.akop.airjag.model.SmallTank;
 import org.akop.airjag.model.Sprite;
+import org.akop.airjag.model.VTank;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.util.DisplayMetrics;
@@ -185,13 +192,45 @@ public class GameLoop extends Thread {
 		}
 	};
 
-	private SparseArray<Bitmap> mTiles;
+	private static final int mSpriteSets[] = {
+		R.drawable.objects_00,
+		R.drawable.objects_01,
+		R.drawable.objects_02,
+		R.drawable.objects_03,
+		R.drawable.objects_04,
+		R.drawable.objects_05,
+		R.drawable.objects_06,
+		R.drawable.objects_07,
+		R.drawable.objects_08,
+		R.drawable.objects_09,
+		R.drawable.objects_10,
+		R.drawable.objects_11,
+		R.drawable.objects_12,
+		R.drawable.objects_13,
+		R.drawable.objects_14,
+		R.drawable.objects_15,
+		R.drawable.objects_16,
+		R.drawable.objects_17,
+		R.drawable.objects_18,
+		R.drawable.objects_19,
+		R.drawable.objects_20,
+		R.drawable.objects_21,
+		R.drawable.objects_22,
+		R.drawable.objects_23,
+		R.drawable.objects_24,
+		R.drawable.objects_25,
+		R.drawable.objects_26,
+		R.drawable.objects_27,
+		R.drawable.objects_28,
+		R.drawable.objects_29,
+	};
 
 	private SparseArray<List<SpriteHolder>> mSpriteMap;
 	private int[][] mTileMap;
 
 	private int mY;
 
+	private TileSack mSack;
 	private Sprite mPlayer;
 	private List<Sprite> mOnscreenSprites;
 
@@ -199,7 +238,6 @@ public class GameLoop extends Thread {
 		mContext = context;
 		mRunning = false;
 		mSurfaceHolder = holder;
-		mTiles = new SparseArray<Bitmap>();
 		mSpriteMap = new SparseArray<List<SpriteHolder>>();
 		mOnscreenSprites = new ArrayList<Sprite>();
 
@@ -222,12 +260,25 @@ public class GameLoop extends Thread {
 				Bitmap.Config.ARGB_8888);
 		mActualCanvas = new Canvas(mActualBitmap);
 
+		mSack = new TileSack(mContext);
+
 		initResources();
 		initTileMap();
 		initSprites();
 		initGame();
 
 		mViewableTop = GAME_HEIGHT_PX + TILE_HEIGHT_PX;
+	}
+
+	private void initResources() {
+		int tileset[] = mTileSets[0];
+		for (int i = 0, n = tileset.length; i < n; i++) {
+			mSack.addTile(TileSack.MASK_TILE | i, tileset[i]);
+		}
+
+		for (int i = 0, n = mSpriteSets.length; i < n; i++) {
+			mSack.addTile(TileSack.MASK_SPRITE | i, mSpriteSets[i]);
+		}
 	}
 
 	private void initTileMap() {
@@ -242,16 +293,8 @@ public class GameLoop extends Thread {
 		mY = mMapHeight - 1;
 	}
 
-	private void initResources() {
-		int tileset[] = mTileSets[0];
-		for (int i = 0, n = tileset.length; i < n; i++) {
-			mTiles.put(i, BitmapFactory.decodeResource(mContext.getResources(),
-					tileset[i]));
-		}
-	}
-
 	private void initSprites() {
-		mPlayer = new Player(mContext);
+		mPlayer = new Player(mSack);
 	}
 
 	private void initGame() {
@@ -265,12 +308,15 @@ public class GameLoop extends Thread {
 			if (++foo > 7)
 				foo = 0;
 		}
-
+int sprites[] = new int[] { 29, 26, 28, 24, 22, 18, 20, 10, 12 };
+int spriteIdx = 0;
 		for (int i = mMapHeight - 11; i >= 0; i-=3) {
 			List<SpriteHolder> spriteHolders = new ArrayList<SpriteHolder>();
 			int x = (int)(Math.random() * GAME_WIDTH_PX);
-			spriteHolders.add(new SpriteHolder(10, x));
+			spriteHolders.add(new SpriteHolder(sprites[spriteIdx], x));
 			mSpriteMap.put(i, spriteHolders);
+if (++spriteIdx >= sprites.length)
+	spriteIdx = 0;
 		}
 	}
 
@@ -290,12 +336,38 @@ public class GameLoop extends Thread {
 
 				switch(spriteHolder.mType) {
 				case 10:
-					sprite = new RedPlane(mContext);
+					sprite = new RedPlane(mSack);
+					break;
+				case 12:
+					sprite = new Helo(mSack);
+					break;
+				case 18:
+					sprite = new VTank(mSack);
+					break;
+				case 20:
+					sprite = new HTank(mSack);
+					break;
+				case 22:
+					sprite = new Boat(mSack);
+					break;
+				case 24:
+					sprite = new SmallTank(mSack);
+					break;
+				case 26:
+					sprite = new Jet(mSack);
+					break;
+				case 28:
+					sprite = new PlaneToRight(mSack);
+					break;
+				case 29:
+					sprite = new PlaneToLeft(mSack);
 					break;
 				}
 
 				if (sprite != null) {
-					sprite.setPos(spriteHolder.mX, 0);
+					if (sprite.needsHorizontalPlacement())
+						sprite.setPos(spriteHolder.mX, -TILE_HEIGHT_PX);
+
 					mOnscreenSprites.add(sprite);
 				}
 			}
@@ -305,29 +377,22 @@ public class GameLoop extends Thread {
 	private void pruneOnscreenSprites() {
 		for (int i = mOnscreenSprites.size() - 1; i >= 0; i--) {
 			Sprite sprite = mOnscreenSprites.get(i);
-			if (sprite.getY() > GAME_HEIGHT_PX || sprite.getX() > GAME_WIDTH_PX) {
-				mOnscreenSprites.remove(i++);
-				sprite.destroy();
+			if (sprite.getY() > GAME_HEIGHT_PX || 
+					sprite.getX() > GAME_WIDTH_PX ||
+					sprite.isKilled()) {
+				mOnscreenSprites.remove(i);
+				Log.v("*", "Removed sprite");
 			}
 		}
 	}
 
 	private void renderTiles(Canvas canvas) {
 		for (int j = 0; j < GAME_WIDTH; j++) {
-			int tile = mTileMap[mY][j];
 			int scaledX = scale(j * TILE_WIDTH_PX);
 
-			canvas.drawBitmap(mTiles.get(tile), scaledX, 
-					scale(mViewableTop - TILE_HEIGHT_PX), null);
-			canvas.drawBitmap(mTiles.get(tile), scaledX, 
-					scale(mViewableTop + GAME_HEIGHT_PX), null);
-		}
-	}
-
-	private void renderSprites(Canvas canvas) {
-		mPlayer.render(canvas);
-		for (Sprite sprite: mOnscreenSprites) {
-			sprite.render(canvas);
+			Bitmap tile = mSack.getTile(TileSack.MASK_TILE | mTileMap[mY][j]);
+			canvas.drawBitmap(tile, scaledX, scale(mViewableTop - TILE_HEIGHT_PX), null);
+			canvas.drawBitmap(tile, scaledX, scale(mViewableTop + GAME_HEIGHT_PX), null);
 		}
 	}
 
@@ -357,9 +422,18 @@ public class GameLoop extends Thread {
 				mActualCanvas.drawBitmap(mVirtualBitmap, source, dest, null);
 
 				// Render sprites
-				renderSprites(mActualCanvas);
+				mPlayer.advance(null);
+				mPlayer.render(mActualCanvas);
 
-				// Render scratch bitmap to the surface 
+				for (Sprite sprite: mOnscreenSprites) {
+					if (mPlayer.isInCollision(sprite))
+						sprite.kill();
+
+					sprite.advance(mPlayer);
+					sprite.render(mActualCanvas);
+				}
+
+				// Render scratch bitmap to the surface
 				canvas = mSurfaceHolder.lockCanvas();
 				synchronized (mSurfaceHolder) {
 					source = new Rect(0, 0, mScaledWidth, mScaledHeight);
@@ -386,14 +460,7 @@ try {
 
 	public void cleanUp() {
 		mVirtualBitmap.recycle();
-
-		for (int i = 0, n = mTiles.size(); i < n; i++) {
-			int key = mTiles.keyAt(i);
-			mTiles.get(key).recycle();
-		}
-
-		mPlayer.destroy();
-		for (Sprite sprite: mOnscreenSprites)
-			sprite.destroy();
+		mActualBitmap.recycle();
+		mSack.destroy();
 	}
 }
