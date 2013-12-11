@@ -25,8 +25,10 @@ public class GameLoop extends Thread {
 
 	private boolean mRunning;
 	private SurfaceHolder mSurfaceHolder;
-	private Bitmap mGameBitmap;
-	private Canvas mGameCanvas;
+	private Bitmap mVirtualBitmap;
+	private Bitmap mActualBitmap;
+	private Canvas mVirtualCanvas;
+	private Canvas mActualCanvas;
 	private Context mContext;
 	private int mDensity;
 
@@ -35,6 +37,9 @@ public class GameLoop extends Thread {
 
 	private int mScaledWidth;
 	private int mScaledHeight;
+
+	private int mScreenWidth;
+	private int mScreenHeight;
 
 	private int mViewableTop;
 
@@ -185,6 +190,19 @@ public class GameLoop extends Thread {
 		mScaledWidth = scale(GAME_WIDTH_PX);
 		mScaledHeight = scale(GAME_HEIGHT_PX);
 
+		mScreenWidth = metrics.widthPixels;
+		mScreenHeight = (int)((float)metrics.widthPixels 
+				* ((float)GAME_HEIGHT_PX / (float)GAME_WIDTH_PX));
+
+		mVirtualBitmap = Bitmap.createBitmap(mScaledWidth, 
+				scale(GAME_HEIGHT_PX * 2 + TILE_HEIGHT_PX), 
+				Bitmap.Config.ARGB_8888);
+		mVirtualCanvas = new Canvas(mVirtualBitmap);
+
+		mActualBitmap = Bitmap.createBitmap(mScaledWidth, mScaledHeight, 
+				Bitmap.Config.ARGB_8888);
+		mActualCanvas = new Canvas(mActualBitmap);
+
 		initResources();
 		initTileMap();
 		initSprites();
@@ -214,11 +232,6 @@ public class GameLoop extends Thread {
 	}
 
 	private void initResources() {
-		mGameBitmap = Bitmap.createBitmap(mScaledWidth, 
-				scale(GAME_HEIGHT_PX * 2 + TILE_HEIGHT_PX), 
-				Bitmap.Config.ARGB_8888);
-		mGameCanvas = new Canvas(mGameBitmap);
-
 		int tileset[] = mTileSets[0];
 		for (int i = 0, n = tileset.length; i < n; i++) {
 			mTiles.put(i, BitmapFactory.decodeResource(mContext.getResources(),
@@ -267,8 +280,9 @@ public class GameLoop extends Thread {
 		while (mRunning) {
 			Canvas canvas = null;
 			try {
+				// Set up and render tiles
 				if ((mViewableTop % TILE_HEIGHT_PX) == 0) {
-					renderTiles(mGameCanvas);
+					renderTiles(mVirtualCanvas);
 					mY--;
 				}
 
@@ -276,17 +290,25 @@ public class GameLoop extends Thread {
 				if (mViewableTop <= 0)
 					mViewableTop = GAME_HEIGHT_PX + TILE_HEIGHT_PX;
 
+				// Render actual bitmap
+				Rect source = new Rect(0, scale(mViewableTop), mScaledWidth, scale(mViewableTop) + mScaledHeight);
+				Rect dest = new Rect(0, 0, mScaledWidth, mScaledHeight);
+
+				mActualCanvas.drawBitmap(mVirtualBitmap, source, dest, null);
+
+				// Render sprites
+				renderSprites(mActualCanvas);
+
+				// Render scratch bitmap to the surface 
 				canvas = mSurfaceHolder.lockCanvas();
 				synchronized (mSurfaceHolder) {
-					Rect source = new Rect(0, scale(mViewableTop), mScaledWidth, scale(mViewableTop) + mScaledHeight);
-					Rect dest = new Rect(0, 0, mScaledWidth, mScaledHeight);
+					source = new Rect(0, 0, mScaledWidth, mScaledHeight);
+					dest = new Rect(0, 0, mScreenWidth, mScreenHeight);
 
 					if (canvas != null) {
-						canvas.drawBitmap(mGameBitmap, source, dest, null);
+						canvas.drawBitmap(mActualBitmap, source, dest, null);
 					}
 				}
-
-				renderSprites(canvas);
 			} finally {
 				if (canvas != null)
 					mSurfaceHolder.unlockCanvasAndPost(canvas);
@@ -303,7 +325,7 @@ try {
 	}
 
 	public void cleanUp() {
-		mGameBitmap.recycle();
+		mVirtualBitmap.recycle();
 
 		for (int i = 0, n = mTiles.size(); i < n; i++) {
 			int key = mTiles.keyAt(i);
