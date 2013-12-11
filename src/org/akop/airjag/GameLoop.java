@@ -1,5 +1,10 @@
 package org.akop.airjag;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.akop.airjag.model.Player;
+import org.akop.airjag.model.RedPlane;
 import org.akop.airjag.model.Sprite;
 
 import android.content.Context;
@@ -13,6 +18,16 @@ import android.util.SparseArray;
 import android.view.SurfaceHolder;
 
 public class GameLoop extends Thread {
+
+	private static class SpriteHolder {
+		public int mType;
+		public int mX;
+
+		public SpriteHolder(int type, int x) {
+			mType = type;
+			mX = x;
+		}
+	}
 
 	private static final int TILE_WIDTH_PX  = 32;
 	private static final int TILE_HEIGHT_PX = 32;
@@ -32,7 +47,6 @@ public class GameLoop extends Thread {
 	private Context mContext;
 	private int mDensity;
 
-	private int mMapWidth;
 	private int mMapHeight;
 
 	private int mScaledWidth;
@@ -173,16 +187,21 @@ public class GameLoop extends Thread {
 
 	private SparseArray<Bitmap> mTiles;
 
+	private SparseArray<List<SpriteHolder>> mSpriteMap;
 	private int[][] mTileMap;
+
 	private int mY;
 
 	private Sprite mPlayer;
+	private List<Sprite> mOnscreenSprites;
 
 	public GameLoop(Context context, SurfaceHolder holder) {
 		mContext = context;
 		mRunning = false;
 		mSurfaceHolder = holder;
 		mTiles = new SparseArray<Bitmap>();
+		mSpriteMap = new SparseArray<List<SpriteHolder>>();
+		mOnscreenSprites = new ArrayList<Sprite>();
 
 		DisplayMetrics metrics = mContext.getResources().getDisplayMetrics();
 		mDensity = (int)metrics.density;
@@ -212,21 +231,13 @@ public class GameLoop extends Thread {
 	}
 
 	private void initTileMap() {
-		mMapWidth = 8;
 		mMapHeight = 400;
 
-		mTileMap = new int[mMapHeight][mMapWidth];
+		mTileMap = new int[mMapHeight][GAME_WIDTH];
 
 		for (int i = 0, n = mMapHeight; i < n; i++)
-			for (int j = 0, o = mMapWidth; j < o; j++)
+			for (int j = 0, o = GAME_WIDTH; j < o; j++)
 				mTileMap[i][j] = 0;
-
-		int foo = 0;
-		for (int i = mMapHeight - 1; i >= 0; i--) {
-			mTileMap[i][foo] = 4;
-			if (++foo > 7)
-				foo = 0;
-		}
 
 		mY = mMapHeight - 1;
 	}
@@ -240,13 +251,27 @@ public class GameLoop extends Thread {
 	}
 
 	private void initSprites() {
-		mPlayer = new Sprite(mContext, 
-				R.drawable.objects_00, R.drawable.objects_01);
+		mPlayer = new Player(mContext);
 	}
 
 	private void initGame() {
 		mPlayer.setPos((GAME_WIDTH_PX - mPlayer.getWidth()) / 2, 
 				GAME_HEIGHT_PX - mPlayer.getHeight() * 2);
+
+		// Generate some dummy data
+		int foo = 0;
+		for (int i = mMapHeight - 1; i >= 0; i--) {
+			mTileMap[i][foo] = 4;
+			if (++foo > 7)
+				foo = 0;
+		}
+
+		for (int i = mMapHeight - 11; i >= 0; i-=3) {
+			List<SpriteHolder> spriteHolders = new ArrayList<SpriteHolder>();
+			int x = (int)(Math.random() * GAME_WIDTH_PX);
+			spriteHolders.add(new SpriteHolder(10, x));
+			mSpriteMap.put(i, spriteHolders);
+		}
 	}
 
 	public void stopGameLoop() {
@@ -255,6 +280,36 @@ public class GameLoop extends Thread {
 
 	private int scale(int size) {
 		return size * mDensity;
+	}
+
+	private void placeSprites() {
+		List<SpriteHolder> spriteHolders = mSpriteMap.get(mY);
+		if (spriteHolders != null) {
+			for (SpriteHolder spriteHolder: spriteHolders) {
+				Sprite sprite = null;
+
+				switch(spriteHolder.mType) {
+				case 10:
+					sprite = new RedPlane(mContext);
+					break;
+				}
+
+				if (sprite != null) {
+					sprite.setPos(spriteHolder.mX, 0);
+					mOnscreenSprites.add(sprite);
+				}
+			}
+		}
+	}
+
+	private void pruneOnscreenSprites() {
+		for (int i = mOnscreenSprites.size() - 1; i >= 0; i--) {
+			Sprite sprite = mOnscreenSprites.get(i);
+			if (sprite.getY() > GAME_HEIGHT_PX || sprite.getX() > GAME_WIDTH_PX) {
+				mOnscreenSprites.remove(i++);
+				sprite.destroy();
+			}
+		}
 	}
 
 	private void renderTiles(Canvas canvas) {
@@ -271,6 +326,9 @@ public class GameLoop extends Thread {
 
 	private void renderSprites(Canvas canvas) {
 		mPlayer.render(canvas);
+		for (Sprite sprite: mOnscreenSprites) {
+			sprite.render(canvas);
+		}
 	}
 
 	@Override
@@ -282,6 +340,8 @@ public class GameLoop extends Thread {
 			try {
 				// Set up and render tiles
 				if ((mViewableTop % TILE_HEIGHT_PX) == 0) {
+					pruneOnscreenSprites();
+					placeSprites();
 					renderTiles(mVirtualCanvas);
 					mY--;
 				}
@@ -333,5 +393,7 @@ try {
 		}
 
 		mPlayer.destroy();
+		for (Sprite sprite: mOnscreenSprites)
+			sprite.destroy();
 	}
 }

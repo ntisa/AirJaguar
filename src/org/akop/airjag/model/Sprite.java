@@ -7,7 +7,7 @@ import android.graphics.Canvas;
 import android.util.DisplayMetrics;
 
 
-public class Sprite {
+public abstract class Sprite {
 	private Context mContext;
 	private Bitmap[] mFrameBitmaps;
 	private static int sDensity = -1;
@@ -53,12 +53,24 @@ public class Sprite {
 		mY = y;
 	}
 
+	public int getX() {
+		return mX;
+	}
+
 	public void setX(int x) {
 		mX = x;
 	}
 
+	public int getY() {
+		return mY;
+	}
+
 	public void setY(int y) {
 		mY = y;
+	}
+
+	public void incrementY(int byHowMuch) {
+		mY += byHowMuch;
 	}
 
 	public int getWidth() {
